@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>コード読解 Playground / Code Reading Playground</title>
+    <!-- CSS は JS ではなく HTML から読む（先に読ませて未スタイルのちらつきを防ぐ） -->
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="landing" class="view">
+      <div class="landing-inner">
+        <header class="landing-header">
+          <h1>コード読解 Playground</h1>
+        </header>
+
+        <div id="lang-sections" aria-label="言語選択"></div>
+      </div>
+    </div>
+
+    <div id="lesson-view" class="view">
+      <header>
+        <a href="#/" class="home-link">コード読解 Playground</a>
+        <span id="lesson-title"></span>
+        <span id="status"></span>
+      </header>
+
+      <main>
+        <nav id="lesson-list" aria-label="レッスン一覧"></nav>
+
+        <section id="work">
+          <article id="explanation"></article>
+          <div id="editor"></div>
+          <div id="toolbar">
+            <button id="run" type="button">実行 (Ctrl+Enter)</button>
+            <button id="check" type="button">判定</button>
+            <button id="hint" type="button">ヒント</button>
+            <button id="solution" type="button">解答</button>
+            <button id="reset" type="button">リセット</button>
+          </div>
+        </section>
+
+        <aside id="side">
+          <section class="panel">
+            <h2>出力</h2>
+            <pre id="console"></pre>
+          </section>
+          <section class="panel">
+            <h2>型エラー</h2>
+            <ul id="diagnostics"></ul>
+          </section>
+          <section class="panel">
+            <h2>判定結果</h2>
+            <ul id="results"></ul>
+          </section>
+        </aside>
+      </main>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

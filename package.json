@@ -1,0 +1,23 @@
+{
+  "name": "ts-playground",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5174",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4174",
+    "check": "node src/lessons.test.ts",
+    "e2e": "node e2e/check.mjs"
+  },
+  "dependencies": {
+    "marked": "^18.0.13",
+    "monaco-editor": "^0.56.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "playwright": "1.61.1",
+    "typescript": "^5.6.3",
+    "vite": "^8.3.0"
+  }
+}
