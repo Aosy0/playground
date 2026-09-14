@@ -27,9 +27,11 @@
 
       <main>
         <nav id="lesson-list" aria-label="レッスン一覧"></nav>
+        <div class="gutter gutter-horizontal" role="separator" aria-orientation="vertical" tabindex="0" data-pane="nav"></div>
 
         <section id="work">
           <article id="explanation"></article>
+          <div class="gutter gutter-vertical" role="separator" aria-orientation="horizontal" tabindex="0" data-pane="exp"></div>
           <div id="editor"></div>
           <div id="toolbar">
             <button id="run" type="button">実行 (Ctrl+Enter)</button>
@@ -40,15 +42,19 @@
           </div>
         </section>
 
+        <div class="gutter gutter-horizontal" role="separator" aria-orientation="vertical" tabindex="0" data-pane="side"></div>
+
         <aside id="side">
           <section class="panel">
             <h2>出力</h2>
             <pre id="console"></pre>
           </section>
+          <div class="gutter gutter-vertical" role="separator" aria-orientation="horizontal" tabindex="0" data-pane="side1"></div>
           <section class="panel">
             <h2>型エラー</h2>
             <ul id="diagnostics"></ul>
           </section>
+          <div class="gutter gutter-vertical" role="separator" aria-orientation="horizontal" tabindex="0" data-pane="side2"></div>
           <section class="panel">
             <h2>判定結果</h2>
             <ul id="results"></ul>

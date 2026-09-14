@@ -428,6 +428,138 @@ function reset(): void {
   resultsEl.replaceChildren()
 }
 
+// --- Resizable splitters ---
+const NAV_MIN = 160
+const NAV_MAX = 480
+const SIDE_MIN = 240
+const SIDE_MAX = 640
+const EXP_MIN = 80
+const EDITOR_MIN = 120
+const PANEL_MIN = 60
+const KEY_STEP = 10
+const GUTTER = 6
+
+const clamp = (v: number, min: number, max: number): number => Math.min(Math.max(v, min), max)
+
+function setupSplitters(): void {
+  const root = document.documentElement
+  let raf = 0
+  const scheduleLayout = (): void => {
+    if (raf) return
+    raf = requestAnimationFrame(() => {
+      raf = 0
+      editor?.layout()
+    })
+  }
+  const setVar = (name: string, px: number): void => {
+    root.style.setProperty(name, `${Math.round(px)}px`)
+  }
+  const getVarPx = (name: string): number => parseFloat(getComputedStyle(root).getPropertyValue(name)) || 0
+
+  const workEl = $('work')
+  const toolbarEl = $('toolbar')
+  const sideEl = $('side')
+
+  // side内パネルがまだ minmax(0,1fr) の場合、初回ドラッグ時にpx化する
+  const ensureSidePx = (): { h1: number; h2: number; total: number } => {
+    const total = sideEl.getBoundingClientRect().height - GUTTER * 2
+    let h1 = getVarPx('--side-h1')
+    let h2 = getVarPx('--side-h2')
+    if (!h1 || !h2) {
+      h1 = total / 3
+      h2 = total / 3
+      setVar('--side-h1', h1)
+      setVar('--side-h2', h2)
+      setVar('--side-h3', total - h1 - h2)
+    }
+    return { h1, h2, total }
+  }
+
+  const applyDelta = (pane: string, delta: number): void => {
+    if (pane === 'nav') {
+      const nav = $('lesson-list').getBoundingClientRect().width
+      const base = getVarPx('--nav-width') || nav
+      setVar('--nav-width', clamp(base + delta, NAV_MIN, NAV_MAX))
+    } else if (pane === 'side') {
+      const w = sideEl.getBoundingClientRect().width
+      const base = getVarPx('--side-width') || w
+      // 右ガター: 右に動かす(delta>0)とsideが狭まる
+      setVar('--side-width', clamp(base - delta, SIDE_MIN, SIDE_MAX))
+    } else if (pane === 'exp') {
+      const exp = $('explanation').getBoundingClientRect().height
+      const base = getVarPx('--explanation-height') || exp
+      const maxH = workEl.getBoundingClientRect().height
+        - toolbarEl.getBoundingClientRect().height - GUTTER - EDITOR_MIN
+      setVar('--explanation-height', clamp(base + delta, EXP_MIN, Math.max(EXP_MIN, maxH)))
+    } else if (pane === 'side1') {
+      const { h1, h2, total } = ensureSidePx()
+      const startH1 = getVarPx('--side-h1') || h1
+      const curH2 = getVarPx('--side-h2') || h2
+      const nextH1 = clamp(startH1 + delta, PANEL_MIN, total - curH2 - PANEL_MIN)
+      setVar('--side-h1', nextH1)
+      setVar('--side-h3', total - nextH1 - curH2)
+    } else if (pane === 'side2') {
+      const { h1, h2, total } = ensureSidePx()
+      const curH1 = getVarPx('--side-h1') || h1
+      const startH2 = getVarPx('--side-h2') || h2
+      const nextH2 = clamp(startH2 + delta, PANEL_MIN, total - curH1 - PANEL_MIN)
+      setVar('--side-h2', nextH2)
+      setVar('--side-h3', total - curH1 - nextH2)
+    }
+    scheduleLayout()
+  }
+
+  document.querySelectorAll<HTMLElement>('.gutter').forEach((gutter) => {
+    const pane = gutter.dataset.pane ?? ''
+    const horizontal = gutter.classList.contains('gutter-horizontal')
+
+    gutter.addEventListener('pointerdown', (e) => {
+      e.preventDefault()
+      gutter.setPointerCapture(e.pointerId)
+      // ドラッグ開始時点の値をpx化して基準にする（相対delta方式の誤差蓄積を防ぐ）
+      if (pane === 'nav') setVar('--nav-width', getVarPx('--nav-width') || $('lesson-list').getBoundingClientRect().width)
+      if (pane === 'side') setVar('--side-width', getVarPx('--side-width') || sideEl.getBoundingClientRect().width)
+      if (pane === 'exp') setVar('--explanation-height', getVarPx('--explanation-height') || $('explanation').getBoundingClientRect().height)
+      if (pane === 'side1' || pane === 'side2') ensureSidePx()
+      let lastX = e.clientX
+      let lastY = e.clientY
+
+      const onMove = (ev: PointerEvent): void => {
+        const dx = ev.clientX - lastX
+        const dy = ev.clientY - lastY
+        lastX = ev.clientX
+        lastY = ev.clientY
+        applyDelta(pane, horizontal ? dx : dy)
+      }
+      const onUp = (): void => {
+        gutter.removeEventListener('pointermove', onMove)
+        gutter.removeEventListener('pointerup', onUp)
+        gutter.removeEventListener('pointercancel', onUp)
+        editor?.layout()
+      }
+      gutter.addEventListener('pointermove', onMove)
+      gutter.addEventListener('pointerup', onUp)
+      gutter.addEventListener('pointercancel', onUp)
+    })
+
+    gutter.addEventListener('keydown', (e) => {
+      let delta = 0
+      if (horizontal) {
+        if (e.key === 'ArrowLeft') delta = -KEY_STEP
+        else if (e.key === 'ArrowRight') delta = KEY_STEP
+      } else {
+        if (e.key === 'ArrowUp') delta = -KEY_STEP
+        else if (e.key === 'ArrowDown') delta = KEY_STEP
+      }
+      if (!delta) return
+      // 右ガターは左右が逆感覚にならないよう反転（→でside拡大）
+      if (pane === 'side') delta = -delta
+      e.preventDefault()
+      applyDelta(pane, delta)
+    })
+  })
+}
+
 // --- Event bindings ---
 runButton.addEventListener('click', () => void run())
 checkButton.addEventListener('click', () => void check())
@@ -472,4 +604,5 @@ async function handleRoute(): Promise<void> {
 window.addEventListener('hashchange', () => void handleRoute())
 
 // --- Init ---
+setupSplitters()
 handleRoute()
