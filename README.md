@@ -1,4 +1,4 @@
-# コード読解 Playground（playground）
+# Code Atlas（playground）
 
 [machimoki](../machimoki) のコードを読めるようになるための、ブラウザ完結型の TypeScript 学習ツール。
 トップページで難易度（入門 / 初級 / 上級）を選び、レッスンごとに「解説 → コードを書く → 実行 → 自動採点」ができる。

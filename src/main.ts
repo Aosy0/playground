@@ -458,6 +458,7 @@ function restoreMyCode(): void {
 function reset(): void {
   if (!confirm('このレッスンのコードを初期状態に戻します。よろしいですか？')) return
   if (!editor) return
+  solutionBackup = null
   loading = true
   editor.setValue(currentLesson().starter)
   loading = false

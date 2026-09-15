@@ -1,4 +1,4 @@
-// コード読解 Playground の動作検証（Playwright / ヘッドレス）
+// Code Atlas の動作検証（Playwright / ヘッドレス）
 // 前提: 開発サーバーが http://localhost:5174 で起動していること
 // 実行: npm run e2e
 // 範囲: ランディング（難易度選択・進捗移行）→ レッスン画面（実行/判定/型エラー/中断/復元）→ 全レッスンの解答判定
@@ -187,10 +187,34 @@ await page.getByRole('button', { name: /2\. オブジェクトと interface/ }).
 await waitFor(hasEditorText('interface Bounds'), 'レッスン2の初期コード', 15000)
 record('レッスン一覧から切り替えられる', true)
 
-// 11) 解答例ボタン
+// 11) 解答例ボタン（モーダル表示 → 自分のコードは残る → 反映で読み込み → 戻せる）
 await clickButton('解答例')
+await page.waitForSelector('#solution-modal:not([hidden])', { timeout: 15000 })
+record('解答例ボタンで解答例モーダルが開く', true)
+const beforeApply = await editorText()
+record(
+  '解答例の表示だけでは自分のコードが消えない',
+  beforeApply.includes('interface Bounds') && !beforeApply.includes('west: 139.69'),
+  beforeApply.slice(0, 60),
+)
+await clickButton('エディタに反映する')
 await waitFor(hasEditorText('west: 139.69'), '解答の読み込み', 15000)
 record('解答例ボタンで解答例が読み込まれる', true)
+await clickButton('解答例')
+await clickButton('自分のコードに戻す')
+await waitFor(
+  async () => {
+    const text = await editorText()
+    return text.includes('interface Bounds') && !text.includes('west: 139.69')
+  },
+  '自分のコードに戻す',
+  15000,
+)
+record('解答例から自分のコードに戻せる', true)
+// 12) のリセット検証用にもう一度解答を反映しておく
+await clickButton('解答例')
+await clickButton('エディタに反映する')
+await waitFor(hasEditorText('west: 139.69'), '解答の再読み込み', 15000)
 
 // 12) リセット
 await clickButton('リセット')
@@ -231,6 +255,7 @@ for (let index = 0; index < lessonCount; index += 1) {
   await item.click()
   await page.waitForTimeout(400)
   await clickButton('解答例')
+  await clickButton('エディタに反映する')
   await page.waitForTimeout(1200)
   const diagnosticsText = (await page.locator('#diagnostics').innerText())
     .replace(/\u00a0/g, ' ')
