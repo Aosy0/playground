@@ -187,10 +187,10 @@ await page.getByRole('button', { name: /2\. オブジェクトと interface/ }).
 await waitFor(hasEditorText('interface Bounds'), 'レッスン2の初期コード', 15000)
 record('レッスン一覧から切り替えられる', true)
 
-// 11) 解答ボタン
-await clickButton('解答')
+// 11) 解答例ボタン
+await clickButton('解答例')
 await waitFor(hasEditorText('west: 139.69'), '解答の読み込み', 15000)
-record('解答ボタンで解答例が読み込まれる', true)
+record('解答例ボタンで解答例が読み込まれる', true)
 
 // 12) リセット
 await clickButton('リセット')
@@ -230,7 +230,7 @@ for (let index = 0; index < lessonCount; index += 1) {
   const name = (await item.innerText()).replace(/\u00a0/g, ' ').trim()
   await item.click()
   await page.waitForTimeout(400)
-  await clickButton('解答')
+  await clickButton('解答例')
   await page.waitForTimeout(1200)
   const diagnosticsText = (await page.locator('#diagnostics').innerText())
     .replace(/\u00a0/g, ' ')

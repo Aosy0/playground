@@ -19,6 +19,6 @@ export interface Lesson {
   hints?: string[]
   /** 判定コード。HARNESS が用意する check(name, actual, expected) を呼ぶ */
   tests?: string
-  /** 「解答」ボタンでエディタに読み込むコード */
+  /** 「解答例」ボタンでエディタに読み込むコード */
   solution?: string
 }
