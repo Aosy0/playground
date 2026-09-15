@@ -80,6 +80,7 @@ function isBigEnough(rect: Rect, minSize: number): boolean {
 
 console.log(normalize(30, 50, 10, 20), isBigEnough({ left: 0, top: 0, right: 10, bottom: 10 }, 5))
 `,
+    expected: '{"left":10,"top":20,"right":30,"bottom":50} true',
     hints: [
       '`Math.min(startX, endX)` が left、`Math.max(startX, endX)` が right になります',
       '`isBigEnough` は幅と高さを出して、両方 `>= minSize` かを `&&` でつなぎます',
@@ -197,6 +198,7 @@ function issueCount(value: ValidationResult): number {
 
 console.log(judgeMessage(result), issueCount(result))
 `,
+    expected: '複数のシェルに分かれています 0',
     hints: [
       '`switch (value.status)` で3つの場合に分けます',
       '`issueCount` は3つのプロパティを足すだけです',
@@ -310,6 +312,7 @@ function describePhase(phase: PipelinePhase): string {
 
 console.log(describePhase('idle'))
 `,
+    expected: '待機中',
     hints: [
       '`case` は8つあります。コメントの対応表どおりにラベルを返します',
       '網羅できたら `default` は `const exhaustive: never = phase` にします',
@@ -460,6 +463,7 @@ function pickInside(items: Component[], area: Bounds2D): Component[] {
 
 console.log(pickInside(components, bounds))
 `,
+    expected: '[{"x":1,"z":1},{"x":5,"z":5}]',
     hints: [
       '`inside` は x と z の両方を、それぞれ min 以上かつ max 以下で判定します',
       '境界を含めるので `>=` と `<=` を使います',
@@ -606,6 +610,7 @@ function canDependOn(from: string, to: string): boolean {
 
 console.log(layerOf('frontend/src/App.tsx'), canDependOn('worker', 'core'))
 `,
+    expected: 'frontend true',
     hints: [
       '`path.split("/")[0]` で先頭ディレクトリを取り出せます',
       '`layerOf` は取り出した値が3つのどれかならそれを返し、それ以外は `unknown` にします',
@@ -705,6 +710,7 @@ function buildExportOptions(input: Partial<ExportOptions>): ExportOptions {
 
 console.log(buildExportOptions({ terrainThickness: 10 }))
 `,
+    expected: '{"terrainThickness":10,"flattenBottom":true,"format":"3mf","upAxis":"z-up","scale":1}',
     hints: [
       '`if (!input.terrainThickness || input.terrainThickness <= 0) throw new Error(...)` で検証できます',
       '`input.flattenBottom ?? true` で「指定があればそれ、無ければ既定値」になります',

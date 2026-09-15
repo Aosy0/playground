@@ -38,11 +38,17 @@ const editorHost = $('editor')
 const consoleEl = $('console')
 const diagnosticsEl = $('diagnostics')
 const resultsEl = $('results')
+const expectedEl = $('expected')
 const runButton = $<HTMLButtonElement>('run')
 const checkButton = $<HTMLButtonElement>('check')
 const hintButton = $<HTMLButtonElement>('hint')
 const solutionButton = $<HTMLButtonElement>('solution')
 const resetButton = $<HTMLButtonElement>('reset')
+const solutionModal = $('solution-modal')
+const solutionCodeEl = $('solution-code')
+const solutionApplyButton = $<HTMLButtonElement>('solution-apply')
+const solutionRestoreButton = $<HTMLButtonElement>('solution-restore')
+const solutionCloseButton = $<HTMLButtonElement>('solution-close')
 const langSectionsContainer = $<HTMLDivElement>('lang-sections')
 
 // --- State ---
@@ -56,8 +62,12 @@ let running: { kill: () => void } | null = null
 let grading = false
 let gradeSeen = false
 let loading = true
+// 解答例の反映前に退避した自分のコード。反映時に保存を抑止しているため
+// localStorage 側にも自分のコードが残るが、復元はこの退避から行う。
+let solutionBackup: { key: string; code: string } | null = null
 
 const currentLesson = () => lessons[currentIndex]
+const currentKey = (): string => `${currentLesson().lang}:${currentLesson().id}`
 
 // --- Routing ---
 function parseRoute(hash: string): { view: 'landing' } | { view: 'tier'; tier: TierKey } | { view: 'lesson'; tier: TierKey; lessonId: string } {
@@ -265,11 +275,14 @@ function navigateToLesson(index: number): void {
 function activateLesson(index: number): void {
   currentIndex = index
   hintIndex = 0
+  solutionBackup = null
+  solutionModal.hidden = true
   const lesson = currentLesson()
 
   loading = true
   lessonTitleEl.textContent = lesson.title
   explanationEl.innerHTML = marked.parse(lesson.explanation) as string
+  expectedEl.textContent = lesson.expected
   if (!editor) throw new Error('Editor not initialized')
   editor.setValue(getSavedCode(lesson.lang, lesson.id, lesson.starter) ?? lesson.starter)
   loading = false
@@ -410,11 +423,36 @@ function showSolution(): void {
     appendOutput('このレッスンには解答例がありません。')
     return
   }
-  if (!confirm('解答例をエディタに読み込みます（現在のコードは上書きされます）。よろしいですか？')) return
-  if (!editor) return
+  solutionCodeEl.textContent = solution
+  solutionRestoreButton.hidden = solutionBackup?.key !== currentKey()
+  solutionModal.hidden = false
+  solutionCloseButton.focus()
+}
+
+function closeSolution(): void {
+  solutionModal.hidden = true
+}
+
+function applySolution(): void {
+  const solution = currentLesson().solution
+  if (!solution || !editor) return
+  if (editor.getValue() !== solution) {
+    if (!confirm('解答例をエディタに読み込みます。自分のコードにはいつでも戻せます。よろしいですか？')) return
+    solutionBackup = { key: currentKey(), code: editor.getValue() }
+    loading = true
+    editor.setValue(solution)
+    loading = false
+  }
+  closeSolution()
+}
+
+function restoreMyCode(): void {
+  if (!editor || solutionBackup?.key !== currentKey()) return
   loading = true
-  editor.setValue(solution)
+  editor.setValue(solutionBackup.code)
   loading = false
+  solutionBackup = null
+  closeSolution()
 }
 
 function reset(): void {
@@ -461,18 +499,21 @@ function setupSplitters(): void {
   const sideEl = $('side')
 
   // side内パネルがまだ minmax(0,1fr) の場合、初回ドラッグ時にpx化する
-  const ensureSidePx = (): { h1: number; h2: number; total: number } => {
-    const total = sideEl.getBoundingClientRect().height - GUTTER * 2
+  const ensureSidePx = (): { h0: number; h1: number; h2: number; total: number } => {
+    const total = sideEl.getBoundingClientRect().height - GUTTER * 3
+    let h0 = getVarPx('--side-h0')
     let h1 = getVarPx('--side-h1')
     let h2 = getVarPx('--side-h2')
-    if (!h1 || !h2) {
-      h1 = total / 3
-      h2 = total / 3
+    if (!h0 || !h1 || !h2) {
+      h0 = total / 4
+      h1 = total / 4
+      h2 = total / 4
+      setVar('--side-h0', h0)
       setVar('--side-h1', h1)
       setVar('--side-h2', h2)
-      setVar('--side-h3', total - h1 - h2)
+      setVar('--side-h3', total - h0 - h1 - h2)
     }
-    return { h1, h2, total }
+    return { h0, h1, h2, total }
   }
 
   const applyDelta = (pane: string, delta: number): void => {
@@ -491,20 +532,30 @@ function setupSplitters(): void {
       const maxH = workEl.getBoundingClientRect().height
         - toolbarEl.getBoundingClientRect().height - GUTTER - EDITOR_MIN
       setVar('--explanation-height', clamp(base + delta, EXP_MIN, Math.max(EXP_MIN, maxH)))
+    } else if (pane === 'side0') {
+      const { h0, h1, h2, total } = ensureSidePx()
+      const startH0 = getVarPx('--side-h0') || h0
+      const curH1 = getVarPx('--side-h1') || h1
+      const curH2 = getVarPx('--side-h2') || h2
+      const nextH0 = clamp(startH0 + delta, PANEL_MIN, total - curH1 - curH2 - PANEL_MIN)
+      setVar('--side-h0', nextH0)
+      setVar('--side-h3', total - nextH0 - curH1 - curH2)
     } else if (pane === 'side1') {
-      const { h1, h2, total } = ensureSidePx()
+      const { h0, h1, h2, total } = ensureSidePx()
+      const curH0 = getVarPx('--side-h0') || h0
       const startH1 = getVarPx('--side-h1') || h1
       const curH2 = getVarPx('--side-h2') || h2
-      const nextH1 = clamp(startH1 + delta, PANEL_MIN, total - curH2 - PANEL_MIN)
+      const nextH1 = clamp(startH1 + delta, PANEL_MIN, total - curH0 - curH2 - PANEL_MIN)
       setVar('--side-h1', nextH1)
-      setVar('--side-h3', total - nextH1 - curH2)
+      setVar('--side-h3', total - curH0 - nextH1 - curH2)
     } else if (pane === 'side2') {
-      const { h1, h2, total } = ensureSidePx()
+      const { h0, h1, h2, total } = ensureSidePx()
+      const curH0 = getVarPx('--side-h0') || h0
       const curH1 = getVarPx('--side-h1') || h1
       const startH2 = getVarPx('--side-h2') || h2
-      const nextH2 = clamp(startH2 + delta, PANEL_MIN, total - curH1 - PANEL_MIN)
+      const nextH2 = clamp(startH2 + delta, PANEL_MIN, total - curH0 - curH1 - PANEL_MIN)
       setVar('--side-h2', nextH2)
-      setVar('--side-h3', total - curH1 - nextH2)
+      setVar('--side-h3', total - curH0 - curH1 - nextH2)
     }
     scheduleLayout()
   }
@@ -565,6 +616,15 @@ runButton.addEventListener('click', () => void run())
 checkButton.addEventListener('click', () => void check())
 hintButton.addEventListener('click', showHint)
 solutionButton.addEventListener('click', showSolution)
+solutionApplyButton.addEventListener('click', applySolution)
+solutionRestoreButton.addEventListener('click', restoreMyCode)
+solutionCloseButton.addEventListener('click', closeSolution)
+solutionModal.addEventListener('click', (e) => {
+  if (e.target === solutionModal) closeSolution()
+})
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !solutionModal.hidden) closeSolution()
+})
 resetButton.addEventListener('click', reset)
 
 // --- Route handling ---

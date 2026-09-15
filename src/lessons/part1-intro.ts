@@ -56,6 +56,7 @@ function temperature(celsius: number): string {
 
 console.log(greet('佐藤'), temperature(25))
 `,
+    expected: 'こんにちは、佐藤さん 気温は25度です',
     hints: [
       '`\'こんにちは、\' + name + \'さん\'` のように `+` でつなげる書き方もあります',
       'テンプレートリテラルはバッククォートで囲み、`${name}` の場所に値を埋め込みます',
@@ -123,6 +124,7 @@ function total(price: number, count: number): number {
 
 console.log(area(3, 4), total(120, 3))
 `,
+    expected: '12 360',
     hints: [
       '面積は「横 × 高さ」なので `return width * height` です',
       '合計金額は「単価 × 個数」なので `return price * count` です',
@@ -205,6 +207,7 @@ function isFreezing(celsius: number): boolean {
 
 console.log(hemisphere(35.68), isFreezing(0))
 `,
+    expected: '北半球 true',
     hints: [
       '`if (lat > 0)` で北半球、`if (lat < 0)` で南半球を返し、残りを赤道にします',
       '`else if` を使わず、`if` を2つ並べて最後に `return \'赤道\'` でもかまいません',
@@ -296,6 +299,7 @@ function countPositive(values: number[]): number {
 
 console.log(sum([1, 2, 3]), countPositive([1, -2, 3]))
 `,
+    expected: '6 2',
     hints: [
       '`let total = 0` を用意し、`for (const value of values)` の中で `total = total + value` します',
       '`countPositive` は `if (value > 0)` のときだけ `count = count + 1` します',
@@ -378,6 +382,7 @@ function joinWith(items: string[], separator: string): string {
 
 console.log(repeat('ab', 3), joinWith(['a', 'b', 'c'], '-'))
 `,
+    expected: 'ababab a-b-c',
     hints: [
       '`let result = \'\'` を用意し、`text` の回数だけ `result = result + text` します',
       '回数を数えるには `for (let i = 0; i < count; i++)` が使えます',
@@ -455,6 +460,7 @@ function summarize(lats: number[]): string {
 
 console.log(summarize([35.68, -33.9, 0]))
 `,
+    expected: '3地点 / 北緯2 / 南緯1',
     hints: [
       '北緯用と南緯用に `let north = 0` `let south = 0` の2つの変数を用意します',
       '`if (lat >= 0)` なら北緯、そうでなければ南緯として数えます',

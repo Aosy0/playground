@@ -46,6 +46,11 @@
 
         <aside id="side">
           <section class="panel">
+            <h2>期待する出力</h2>
+            <pre id="expected"></pre>
+          </section>
+          <div class="gutter gutter-vertical" role="separator" aria-orientation="horizontal" tabindex="0" data-pane="side0"></div>
+          <section class="panel">
             <h2>出力</h2>
             <pre id="console"></pre>
           </section>
@@ -64,5 +69,18 @@
     </div>
 
     <script type="module" src="/src/main.ts"></script>
+
+    <div id="solution-modal" hidden>
+      <div class="solution-dialog" role="dialog" aria-modal="true" aria-labelledby="solution-title">
+        <h2 id="solution-title">解答例</h2>
+        <p class="solution-note">自分のコードはそのまま残ります。見比べて参考にしてください。</p>
+        <pre id="solution-code"></pre>
+        <div class="solution-actions">
+          <button id="solution-apply" type="button">エディタに反映する</button>
+          <button id="solution-restore" type="button" hidden>自分のコードに戻す</button>
+          <button id="solution-close" type="button">閉じる</button>
+        </div>
+      </div>
+    </div>
   </body>
 </html>

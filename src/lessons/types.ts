@@ -15,6 +15,8 @@ export interface Lesson {
   explanation: string
   /** エディタに最初に表示されるコード */
   starter: string
+  /** solution適用時に出力欄へ出る期待表示（サイドバー「期待する出力」に表示） */
+  expected: string
   /** 「ヒント」ボタンで1つずつ表示される */
   hints?: string[]
   /** 判定コード。HARNESS が用意する check(name, actual, expected) を呼ぶ */

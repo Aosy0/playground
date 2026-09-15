@@ -54,6 +54,7 @@ function describe(lat, lon) {
 
 console.log(add(2, 3), isNorth(35.68), describe(35.68, 139.77))
 `,
+    expected: '5 true 35.68, 139.77',
     hints: [
       '`function 名前(引数: 型): 戻り値の型 { ... }` の形で書きます',
       '`add` は `return a + b`、`isNorth` は `return lat >= 0` です',
@@ -126,6 +127,7 @@ const bounds: Bounds = {
 
 console.log(bounds)
 `,
+    expected: '{"west":139.69,"south":35.69,"east":139.7,"north":35.7}',
     hints: [
       '`{ west: 139.69, south: 35.69, east: 139.7, north: 35.7 }` のように書きます',
       'プロパティの順番は自由です。カンマで区切ります',
@@ -229,6 +231,7 @@ function hasError(state: PipelineState): boolean {
 
 console.log(fallback(idle.error, 'エラーはありません'), hasError(failed))
 `,
+    expected: 'エラーはありません true',
     hints: [
       '`message ?? fallbackText` で「null のときだけ既定値」を返せます',
       '`hasError` は `state.error !== null` を返すだけです',
@@ -320,6 +323,7 @@ function statusLabel(status: ValidationResult['status']): string {
 
 console.log(formatLabel('3mf'), axisLabel('z-up'), statusLabel('pass'))
 `,
+    expected: '3MF Z軸アップ 合格',
     hints: [
       '`switch (format)` と `case \'3mf\':` で場合分けします',
       '`case` ごとに `return` でラベルを返します',
@@ -441,6 +445,7 @@ function makeExportOptions() {
 
 console.log(makeExportOptions())
 `,
+    expected: '{"terrainThickness":10,"flattenBottom":true,"format":"3mf"}',
     hints: [
       '引数の形は `terrainThickness: number = 10` のように書きます',
       '`return { terrainThickness, flattenBottom, format }` でオブジェクトを返します',
@@ -531,6 +536,7 @@ function normalize(value: ValidateInput): string {
 
 console.log(normalize('abc'), normalize(12), normalize({ text: 'ok' }))
 `,
+    expected: 'abc 12 ok',
     hints: [
       '`typeof value === \'string\'` で文字列だけに絞り込めます',
       'オブジェクトの形は `in` 演算子で判定します（`\'text\' in value`）',

@@ -33,6 +33,7 @@ for (const lesson of lessons) {
   )
   assert.ok(lesson.explanation.length > 0, `${lesson.id}: explanation が空です`)
   assert.ok(lesson.starter.length > 0, `${lesson.id}: starter が空です`)
+  assert.ok(lesson.expected.length > 0, `${lesson.id}: expected が空です`)
 
   const errors = [
     ...syntaxErrors(lesson.starter, `${lesson.id} starter`),

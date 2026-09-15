@@ -20,6 +20,7 @@
   --nav-width: 260px;
   --side-width: 380px;
   --explanation-height: minmax(100px, 26%);
+  --side-h0: minmax(0, 1fr);
   --side-h1: minmax(0, 1fr);
   --side-h2: minmax(0, 1fr);
   --side-h3: minmax(0, 1fr);
@@ -496,7 +497,7 @@ a:focus-visible {
 
 #side {
   display: grid;
-  grid-template-rows: var(--side-h1) 6px var(--side-h2) 6px var(--side-h3);
+  grid-template-rows: var(--side-h0) 6px var(--side-h1) 6px var(--side-h2) 6px var(--side-h3);
   min-height: 0;
   border-left: 1px solid var(--border);
 }
@@ -566,6 +567,62 @@ a:focus-visible {
   color: var(--muted);
 }
 
+/* Solution modal: 自分のコードを残したまま解答例を見比べる */
+#solution-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 50;
+}
+
+#solution-modal[hidden] {
+  display: none;
+}
+
+.solution-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(640px, 100%);
+  max-height: 80vh;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.solution-dialog h2 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.solution-note {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+#solution-code {
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  background: #141414;
+  border-radius: 4px;
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.solution-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .landing-header h1 {
@@ -600,7 +657,7 @@ a:focus-visible {
   #side {
     border-left: none;
     border-top: 1px solid var(--border);
-    grid-template-rows: repeat(3, minmax(120px, 1fr));
+    grid-template-rows: repeat(4, minmax(120px, 1fr));
     min-height: 360px;
   }
 }

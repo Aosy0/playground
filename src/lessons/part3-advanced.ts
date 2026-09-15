@@ -59,6 +59,7 @@ function last(items) {
 
 console.log(first(numbers), last(names))
 `,
+    expected: '3 stl',
     hints: [
       '`function first<T>(items: T[]): T | undefined` と宣言します',
       '先頭は `items[0]`、末尾は `items[items.length - 1]` です',
@@ -164,6 +165,7 @@ const sample: ExportOptions = {
 
 console.log(toForm(sample), formatLabels)
 `,
+    expected: '{"terrainThickness":10,"flattenBottom":true,"format":"stl"} {"3mf":"3MF","stl":"STL","machimoki":"machimoki"}',
     hints: [
       '`type ExportForm = Partial<Pick<ExportOptions, \'terrainThickness\' | \'flattenBottom\' | \'format\'>>` と書けます',
       '`toForm` は3つのプロパティを持つオブジェクトを返します',
@@ -277,6 +279,7 @@ function readError(input: { message?: string } | null): string {
 
 console.log(formatValue('ok'), readError(null))
 `,
+    expected: 'ok 不明なエラー',
     hints: [
       '`isFiniteNumber` の中身は `typeof value === \'number\' && Number.isFinite(value)` です',
       '`formatValue` は `typeof value === \'string\'` → `isFiniteNumber(value)` → `\'不明\'` の順に判定します',
@@ -375,6 +378,7 @@ function describeResult(result: ParseResult): string {
 
 console.log(describeResult(parsePositive(12)), describeResult(parsePositive(0)))
 `,
+    expected: 'OK: 12 NG: 正の数ではありません',
     hints: [
       '`if (value > 0)` なら `{ ok: true, value }`、そうでなければ `{ ok: false, error: \'正の数ではありません\' }` を返します',
       '`describeResult` は `if (result.ok)` で分けると、中で `result.value` が使えます',
@@ -480,6 +484,7 @@ function isFormat(value: string): value is Format {
 
 console.log(update(base, 'thickness', 20), isFormat('stl'))
 `,
+    expected: '{"thickness":20,"format":"3mf","flatten":true} true',
     hints: [
       '`update` の戻り値は `{ ...params, [key]: value }` です（`params[key] = value` としないこと）',
       '`K extends keyof ExportParams` と `value: ExportParams[K]` の対応で、キーと値の型が連動します',
@@ -588,6 +593,7 @@ counter.add('みかん')
 
 console.log(counter.count('りんご'), unique([1, 2, 2, 3, 1]))
 `,
+    expected: '2 [1,2,3]',
     hints: [
       '`add` は `this.counts.get(item) ?? 0` で現在の回数を取り、`this.counts.set(item, current + 1)` で更新します',
       '`count` は `this.counts.get(item) ?? 0` を返すだけです',
@@ -683,6 +689,7 @@ const label = ''
 
 console.log(result, label)
 `,
+    expected: '{"status":"fail","numShells":3} 不合格',
     hints: [
       '`async` 関数では `return { status, numShells }` のように値を返せます',
       'トップレベル `await` は `const result = await resolveResult(...)` のように書きます',
