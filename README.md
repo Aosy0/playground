@@ -2,7 +2,6 @@
 
 [machimoki](../machimoki) のコードを読めるようになるための、ブラウザ完結型の TypeScript 学習ツール。
 トップページで難易度（入門 / 初級 / 上級）を選び、レッスンごとに「解説 → コードを書く → 実行 → 自動採点」ができる。
-同じ研究室の仲間と共有する前提。
 
 - 公開予定URL: `https://playground.aosy.f5.si`（Nginx Proxy Manager → Docker コンテナ）
 - **サーバーでは一切コードを実行しない**。実行はすべて閲覧者のブラウザ内（Web Worker）で完結する
