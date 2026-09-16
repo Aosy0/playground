@@ -17,8 +17,11 @@
   --landing-muted: #9ca8b4;
   --accent-intro: #e6a845;
   --accent-advanced: #7ee96c;
-  --nav-width: 260px;
-  --side-width: 380px;
+  /* 中間幅でも中央（エディタ）に実用幅を残すよう窓幅に比例縮小。
+     1300px以上は従来どおり260px/380px。JSのgetVarPxはclamp()を解釈できないが
+     実測幅フォールバックでドラッグ開始時のジャンプは起きない */
+  --nav-width: clamp(160px, 20vw, 260px);
+  --side-width: clamp(240px, 30vw, 380px);
   --explanation-height: minmax(100px, 26%);
   --side-h0: minmax(0, 1fr);
   --side-h1: minmax(0, 1fr);
@@ -444,10 +447,14 @@ body {
 #work {
   display: grid;
   grid-template-rows: var(--explanation-height) 6px minmax(0, 1fr) auto;
+  /* 暗黙列が内容のmax-contentに引っ張られて中央トラックをはみ出さないよう列を容器内に収める */
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
   min-height: 0;
 }
 
 #explanation {
+  min-width: 0;
   padding: 12px 16px;
   overflow: auto;
   border-bottom: 1px solid var(--border);
@@ -487,12 +494,15 @@ body {
 }
 
 #editor {
+  min-width: 0;
   min-height: 0;
 }
 
 #toolbar {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
   padding: 8px 12px;
   border-top: 1px solid var(--border);
   background: var(--panel);
@@ -679,6 +689,8 @@ a:focus-visible {
 
   #lesson-view.active {
     grid-template-rows: auto auto minmax(0, 1fr);
+    /* 暗黙列(auto=max-content)がMonacoの古い明示幅で膨らみ縮小に追従しなくなるのを抑止 */
+    grid-template-columns: minmax(0, 1fr);
   }
 
   #lesson-view header {
@@ -732,6 +744,7 @@ a:focus-visible {
   #lesson-view main {
     display: flex;
     flex-direction: column;
+    min-width: 0;
     min-height: 0;
   }
 
@@ -756,6 +769,7 @@ a:focus-visible {
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
+    min-width: 0;
     min-height: 0;
   }
 

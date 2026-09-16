@@ -134,6 +134,54 @@ await page.locator('#lesson-list .lesson-item').nth(3).tap()
 await page.waitForTimeout(500)
 record('モバイル: 結果タブから切替時はコードタブへ戻る', await visible('#code-pane'))
 
+// --- ウィンドウ縮小遷移: タブが画面外に押し出されない ---
+// 注意: page.setViewportSize がこの環境で効かないため、同一起点のiframe幅を絞って縮小を再現する
+{
+  const outer = await browser.newPage({ viewport: { width: 1100, height: 850 } })
+  await outer.goto(BASE, { waitUntil: 'load' })
+  await outer.evaluate(() => {
+    document.body.innerHTML =
+      '<style>body{margin:0}iframe{border:0;width:700px;height:800px;display:block}</style>' +
+      '<iframe src="/#/ts/intro/intro-values"></iframe>'
+  })
+  let narrowFrame = null
+  for (let i = 0; i < 100 && !narrowFrame; i++) {
+    narrowFrame = outer.frame({ url: /localhost:5174\/#\// }) ?? null
+    if (!narrowFrame) await outer.waitForTimeout(200)
+  }
+  if (!narrowFrame) {
+    record('幅700pxでiframeを読み込める', false)
+  } else {
+    await narrowFrame.waitForSelector('.monaco-editor', { timeout: 60000 })
+    await narrowFrame.waitForTimeout(1200)
+    await narrowFrame.locator('#tab-code').click()
+    for (const w of [500, 390, 320]) {
+      await outer.evaluate((w) => {
+        document.querySelector('iframe').style.width = `${w}px`
+      }, w)
+      await outer.waitForTimeout(900)
+      const geo = await narrowFrame.evaluate(() => {
+        const rights = [...document.querySelectorAll('#mobile-tabs [role="tab"]')].map((b) => {
+          const r = b.getBoundingClientRect()
+          return Math.round(r.left + r.width)
+        })
+        return {
+          tabs: getComputedStyle(document.getElementById('mobile-tabs')).display,
+          maxTabR: Math.max(...rights),
+          win: window.innerWidth,
+          overflow: document.documentElement.scrollWidth - window.innerWidth,
+        }
+      })
+      record(
+        `幅${w}pxへ縮小してもタブが画面内に収まる`,
+        geo.tabs === 'flex' && geo.maxTabR <= geo.win + 1 && geo.overflow <= 0,
+        JSON.stringify(geo),
+      )
+    }
+  }
+  await outer.close()
+}
+
 // --- デスクトップ回帰（1600x900） ---
 const desktop = await browser.newPage({ viewport: { width: 1600, height: 900 } })
 await desktop.goto(BASE + '#/ts/intro/basics-hello', { waitUntil: 'load' })
@@ -161,6 +209,35 @@ const widthOk = await desktop.evaluate(() => {
   return getComputedStyle(main).gridTemplateColumns.split(' ').length >= 5
 })
 record('デスクトップ: mainが5カラムグリッドのまま', widthOk)
+
+// --- 中間幅（デスクトップ維持帯）: カラムの重なりなし ---
+for (const w of [1000, 900, 800]) {
+  const mid = await browser.newPage({ viewport: { width: w, height: 800 } })
+  await mid.goto(BASE + '#/ts/intro/intro-values', { waitUntil: 'load' })
+  await mid.waitForSelector('.monaco-editor', { timeout: 60000 })
+  await mid.waitForTimeout(1000)
+  const geo = await mid.evaluate(() => {
+    const er = document.getElementById('explanation').getBoundingClientRect()
+    const sr = document.getElementById('side').getBoundingClientRect()
+    const tr = document.getElementById('toolbar').getBoundingClientRect()
+    const ed = document.getElementById('editor').getBoundingClientRect()
+    return {
+      tabs: getComputedStyle(document.getElementById('mobile-tabs')).display,
+      expR: Math.round(er.right),
+      toolbarR: Math.round(tr.right),
+      sideL: Math.round(sr.left),
+      editorW: Math.round(ed.width),
+      overflow: document.documentElement.scrollWidth - window.innerWidth,
+    }
+  })
+  record(
+    `中間幅${w}px: 重なりなし＆エディタ幅300px以上`,
+    geo.tabs === 'none' && geo.expR <= geo.sideL && geo.toolbarR <= geo.sideL + 1 &&
+      geo.editorW >= 300 && geo.overflow <= 0,
+    JSON.stringify(geo),
+  )
+  await mid.close()
+}
 
 // 長い行の折り返しは「視覚行数」で判定する（Monacoのスクロール幅は仮想化のため当てにならない）
 const wrapProbe = async (p) => {
