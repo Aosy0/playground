@@ -51,6 +51,21 @@ const solutionRestoreButton = $<HTMLButtonElement>('solution-restore')
 const solutionCloseButton = $<HTMLButtonElement>('solution-close')
 const langSectionsContainer = $<HTMLDivElement>('lang-sections')
 
+// --- Mobile refs (desktop CSS keeps them hidden / inline) ---
+const codePaneEl = $('code-pane')
+const tabButtons = {
+  explanation: $<HTMLButtonElement>('tab-explanation'),
+  code: $<HTMLButtonElement>('tab-code'),
+  result: $<HTMLButtonElement>('tab-result'),
+} as const
+const resultBadgeEl = $('result-badge')
+const summaryEl = $('summary')
+const moreButton = $<HTMLButtonElement>('more')
+const moreMenu = $('more-menu')
+const listOpenButton = $<HTMLButtonElement>('list-open')
+const listCloseButton = $<HTMLButtonElement>('list-close')
+const sheetBackdrop = $('sheet-backdrop')
+
 // --- State ---
 const completed = new Map<LanguageId, Set<string>>(
   LANGUAGES.map((lang) => [lang.id, new Set(getDoneIds(lang.id))]),
@@ -235,6 +250,7 @@ async function initEditorIfNeeded(): Promise<void> {
         return item
       }),
     )
+    updateResultMeta()
   })
 }
 
@@ -261,7 +277,10 @@ function renderLessonList(): void {
     button.classList.toggle('active', i === currentIndex)
     button.classList.toggle('done', done)
     button.textContent = `${done ? '✅' : '　'} ${lesson.title}`
-    button.addEventListener('click', () => navigateToLesson(i))
+    button.addEventListener('click', () => {
+      if (isMobile() && !sheetBackdrop.hidden) closeSheet()
+      navigateToLesson(i)
+    })
     lessonListEl.append(button)
   }
 }
@@ -277,6 +296,8 @@ function activateLesson(index: number): void {
   hintIndex = 0
   solutionBackup = null
   solutionModal.hidden = true
+  // モバイルで結果タブを見ていたらコードに戻す（解説/コードはユーザー選択を維持）
+  if (isMobile() && mobileTab === 'result') setMobileTab('code')
   const lesson = currentLesson()
 
   loading = true
@@ -290,6 +311,7 @@ function activateLesson(index: number): void {
   clearOutput()
   resultsEl.replaceChildren()
   renderLessonList()
+  updateResultMeta()
 }
 
 // --- Runner / output ---
@@ -337,6 +359,7 @@ function renderGrade(line: string): void {
     renderLessonList()
     appendOutput('🎉 全問正解です！')
   }
+  updateResultMeta()
 }
 
 function handleMessage(message: RunnerMessage): void {
@@ -361,6 +384,7 @@ function handleMessage(message: RunnerMessage): void {
         appendOutput('判定できませんでした（テストの実行前にエラーで終了した可能性があります）', 'error')
       }
       grading = false
+      updateResultMeta()
       return
   }
 }
@@ -370,6 +394,7 @@ async function run(): Promise<void> {
   grading = false
   clearOutput()
   setBusy(true)
+  setMobileTab('result')
   try {
     const js = await compileModel(editor.model)
     running = runJs(js, handleMessage)
@@ -384,6 +409,7 @@ async function check(): Promise<void> {
   const lesson = currentLesson()
   if (!lesson.tests) {
     appendOutput('このレッスンには自動判定がありません。「実行」で動作を確認してください。')
+    setMobileTab('result')
     return
   }
 
@@ -392,6 +418,7 @@ async function check(): Promise<void> {
   resultsEl.replaceChildren()
   clearOutput()
   setBusy(true)
+  setMobileTab('result')
   try {
     const source = `${HARNESS}\n${editor.getValue()}\n${lesson.tests}\n${REPORT}`
     const js = await compileSource(source)
@@ -415,6 +442,7 @@ function showHint(): void {
   block.textContent = `💡 ヒント${hintIndex}: ${hint}`
   explanationEl.append(block)
   explanationEl.scrollTop = explanationEl.scrollHeight
+  setMobileTab('explanation')
 }
 
 function showSolution(): void {
@@ -465,6 +493,182 @@ function reset(): void {
   clearCode(currentLesson().lang, currentLesson().id)
   clearOutput()
   resultsEl.replaceChildren()
+  updateResultMeta()
+}
+
+// --- Mobile tabs / sheet / overflow menu (mobile only; desktop is no-op) ---
+const mobileQuery = window.matchMedia('(max-width: 768px)')
+const isMobile = (): boolean => mobileQuery.matches
+type MobileTab = 'explanation' | 'code' | 'result'
+const TAB_ORDER: MobileTab[] = ['explanation', 'code', 'result']
+let mobileTab: MobileTab = 'code'
+let sheetReturnFocus: HTMLElement | null = null
+
+function applyMobileTab(): void {
+  for (const key of TAB_ORDER) {
+    const selected = key === mobileTab
+    tabButtons[key].setAttribute('aria-selected', String(selected))
+    tabButtons[key].tabIndex = selected ? 0 : -1
+  }
+  if (!isMobile()) return
+  explanationEl.hidden = mobileTab !== 'explanation'
+  codePaneEl.hidden = mobileTab !== 'code'
+  $('side').hidden = mobileTab !== 'result'
+  if (mobileTab === 'code') requestAnimationFrame(() => editor?.layout())
+}
+
+function setMobileTab(tab: MobileTab, focusTab = false): void {
+  mobileTab = tab
+  if (!isMobile()) return
+  applyMobileTab()
+  if (focusTab) tabButtons[tab].focus()
+}
+
+function setPanelRoles(mobile: boolean): void {
+  const panels: Array<[HTMLElement, string]> = [
+    [explanationEl, 'tab-explanation'],
+    [codePaneEl, 'tab-code'],
+    [$('side'), 'tab-result'],
+  ]
+  for (const [panel, labelledby] of panels) {
+    if (mobile) {
+      panel.setAttribute('role', 'tabpanel')
+      panel.setAttribute('aria-labelledby', labelledby)
+      panel.tabIndex = 0
+    } else {
+      panel.removeAttribute('role')
+      panel.removeAttribute('aria-labelledby')
+      panel.removeAttribute('tabindex')
+    }
+  }
+}
+
+function updateResultMeta(): void {
+  const diagCount = diagnosticsEl.querySelectorAll('.diag').length
+  const ngCount = resultsEl.querySelectorAll('.result.ng').length
+  const okCount = resultsEl.querySelectorAll('.result.ok').length
+  const total = diagCount + ngCount
+  resultBadgeEl.hidden = total === 0
+  resultBadgeEl.textContent = total === 0 ? '' : String(total)
+  if (resultsEl.children.length > 0) {
+    summaryEl.textContent =
+      ngCount === 0
+        ? `🎉 全問正解です（${okCount}件）。`
+        : `❌ ${ngCount}件が不正解です。下の判定結果を確認してください。`
+  } else if (diagCount > 0) {
+    summaryEl.textContent = `型エラーが${diagCount}件あります。下の一覧を確認してください。`
+  } else if (consoleEl.children.length > 0) {
+    summaryEl.textContent = '実行が終わりました。下に出力・型エラー・判定結果が並んでいます。'
+  } else {
+    summaryEl.textContent = 'まだ実行していません。'
+  }
+}
+
+function setMoreOpen(open: boolean): void {
+  moreMenu.hidden = !open
+  moreButton.setAttribute('aria-expanded', String(open))
+}
+
+function openSheet(): void {
+  if (!isMobile()) return
+  sheetReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+  lessonListEl.hidden = false
+  sheetBackdrop.hidden = false
+  listCloseButton.hidden = false
+  const first = lessonListEl.querySelector<HTMLButtonElement>('.lesson-item')
+  ;(first ?? listCloseButton).focus()
+}
+
+function closeSheet(): void {
+  const wasOpen = isMobile() && !sheetBackdrop.hidden
+  if (isMobile()) lessonListEl.hidden = true
+  sheetBackdrop.hidden = true
+  listCloseButton.hidden = true
+  if (wasOpen && sheetReturnFocus) sheetReturnFocus.focus()
+}
+
+function syncMobileChrome(): void {
+  const mobile = isMobile()
+  setPanelRoles(mobile)
+  // ブレークポイントをまたぐリサイズにも追従（changeイベント経由）
+  editor?.setWordWrap(mobile)
+  if (!mobile) {
+    explanationEl.hidden = false
+    codePaneEl.hidden = false
+    $('side').hidden = false
+    lessonListEl.hidden = false
+    sheetBackdrop.hidden = true
+    listCloseButton.hidden = true
+    setMoreOpen(true)
+    return
+  }
+  setMoreOpen(false)
+  closeSheet()
+  applyMobileTab()
+  updateResultMeta()
+}
+
+function setupMobile(): void {
+  for (const key of TAB_ORDER) {
+    tabButtons[key].addEventListener('click', () => setMobileTab(key))
+  }
+  $('mobile-tabs').addEventListener('keydown', (e) => {
+    const current = TAB_ORDER.indexOf(mobileTab)
+    let next = -1
+    if (e.key === 'ArrowRight') next = (current + 1) % TAB_ORDER.length
+    else if (e.key === 'ArrowLeft') next = (current - 1 + TAB_ORDER.length) % TAB_ORDER.length
+    else if (e.key === 'Home') next = 0
+    else if (e.key === 'End') next = TAB_ORDER.length - 1
+    if (next < 0) return
+    e.preventDefault()
+    setMobileTab(TAB_ORDER[next], true)
+  })
+  listOpenButton.addEventListener('click', openSheet)
+  listCloseButton.addEventListener('click', closeSheet)
+  sheetBackdrop.addEventListener('click', closeSheet)
+  document.addEventListener('keydown', (e) => {
+    if (!isMobile() || sheetBackdrop.hidden) return
+    if (e.key === 'Escape') {
+      e.preventDefault()
+      closeSheet()
+      return
+    }
+    if (e.key !== 'Tab') return
+    const items = [
+      listCloseButton,
+      ...Array.from(lessonListEl.querySelectorAll<HTMLButtonElement>('.lesson-item')),
+    ]
+    if (items.length === 0) return
+    const first = items[0]
+    const last = items[items.length - 1]
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault()
+      first.focus()
+    }
+  })
+  moreButton.addEventListener('click', (e) => {
+    e.stopPropagation()
+    setMoreOpen(moreMenu.hidden)
+  })
+  document.addEventListener('click', (e) => {
+    if (isMobile() && !moreMenu.hidden && !moreMenu.contains(e.target as Node)) setMoreOpen(false)
+  })
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isMobile() && !moreMenu.hidden) setMoreOpen(false)
+  })
+  for (const id of ['hint', 'solution', 'reset']) {
+    $(id).addEventListener('click', () => {
+      if (isMobile()) setMoreOpen(false)
+    })
+  }
+  mobileQuery.addEventListener('change', syncMobileChrome)
+  window.visualViewport?.addEventListener('resize', () => {
+    if (isMobile() && mobileTab === 'code') editor?.layout()
+  })
+  syncMobileChrome()
 }
 
 // --- Resizable splitters ---
@@ -481,6 +685,8 @@ const GUTTER = 6
 const clamp = (v: number, min: number, max: number): number => Math.min(Math.max(v, min), max)
 
 function setupSplitters(): void {
+  // モバイル幅ではタブ表示のためスプリッタは無効（gutterもCSSで非表示）
+  if (window.matchMedia('(max-width: 768px)').matches) return
   const root = document.documentElement
   let raf = 0
   const scheduleLayout = (): void => {
@@ -666,4 +872,5 @@ window.addEventListener('hashchange', () => void handleRoute())
 
 // --- Init ---
 setupSplitters()
+setupMobile()
 handleRoute()

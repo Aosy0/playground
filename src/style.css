@@ -75,8 +75,45 @@ body {
   display: grid;
   grid-template-rows: auto 1fr;
   height: 100vh;
+  height: 100dvh;
   background: var(--bg);
   color: var(--fg);
+}
+
+/* Mobile-only elements: hidden on desktop. Panels keep desktop semantics;
+   tab roles are applied by JS only on mobile. */
+#mobile-tabs,
+#list-open,
+#list-close,
+#sheet-backdrop,
+#more,
+#summary-panel {
+  display: none;
+}
+
+#code-pane {
+  display: contents;
+}
+
+#more-menu {
+  display: contents;
+}
+
+#result-badge {
+  display: inline-block;
+  min-width: 20px;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--error);
+  color: #1e1e1e;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+#result-badge[hidden] {
+  display: none;
 }
 
 /* Landing */
@@ -623,7 +660,8 @@ a:focus-visible {
   margin-top: 12px;
 }
 
-/* Responsive */
+/* Responsive: mobile uses tabs (explanation/code/result) + bottom-sheet lesson list.
+   Desktop layout above is untouched. */
 @media (max-width: 768px) {
   .landing-header h1 {
     font-size: 26px;
@@ -639,26 +677,233 @@ a:focus-visible {
     display: none;
   }
 
-  #lesson-view main {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
+  #lesson-view.active {
+    grid-template-rows: auto auto minmax(0, 1fr);
   }
 
-  #lesson-list {
-    border-right: none;
+  #lesson-view header {
+    align-items: center;
+    padding-top: calc(8px + env(safe-area-inset-top));
+  }
+
+  #lesson-view header button,
+  #mobile-tabs button,
+  #toolbar button,
+  #list-close {
+    min-height: 44px;
+  }
+
+  #lesson-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #list-open {
+    display: block;
+    flex: 0 0 auto;
+  }
+
+  /* Tab bar */
+  #mobile-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px 8px 0;
     border-bottom: 1px solid var(--border);
-    max-height: 200px;
+    background: var(--panel);
+  }
+
+  #mobile-tabs [role="tab"] {
+    flex: 1 1 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--muted);
+  }
+
+  #mobile-tabs [role="tab"][aria-selected="true"] {
+    color: var(--fg);
+    box-shadow: inset 0 -2px 0 var(--accent);
+  }
+
+  /* main becomes a single-column tab container */
+  #lesson-view main {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
 
   #work {
-    grid-template-rows: minmax(100px, 26%) minmax(0, 1fr) auto;
+    display: contents;
   }
 
+  #explanation[hidden],
+  #code-pane[hidden],
+  #side[hidden] {
+    display: none;
+  }
+
+  #explanation {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    border-bottom: 0;
+  }
+
+  #code-pane {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  #code-pane[hidden] {
+    display: none;
+  }
+
+  #editor {
+    flex: 1 1 auto;
+    min-height: 40dvh;
+  }
+
+  #toolbar {
+    position: sticky;
+    bottom: 0;
+    align-items: center;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+
+  #run,
+  #check {
+    flex: 1 1 0;
+  }
+
+  #more {
+    display: block;
+    flex: 0 0 auto;
+  }
+
+  #more-menu[hidden] {
+    display: none;
+  }
+
+  #more-menu:not([hidden]) {
+    display: flex;
+    position: absolute;
+    right: 8px;
+    bottom: calc(100% + 4px);
+    flex-direction: column;
+    gap: 4px;
+    min-width: 180px;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--panel);
+    z-index: 20;
+  }
+
+  #more-menu:not([hidden]) button {
+    width: 100%;
+    text-align: left;
+  }
+
+  /* Result tab: stacked summary -> expected/actual -> errors/grades */
   #side {
-    border-left: none;
+    display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    border-left: 0;
+  }
+
+  #side[hidden] {
+    display: none;
+  }
+
+  #summary-panel {
+    display: grid;
+  }
+
+  #summary {
+    margin: 0;
+    padding: 8px 12px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .panel {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel pre,
+  .panel ul {
+    max-height: none;
+  }
+
+  /* Empty-state placeholders: mobile only, desktop unchanged */
+  #console:empty::after {
+    content: '出力はありません';
+    color: var(--muted);
+  }
+
+  #diagnostics:empty::after,
+  #results:empty::after {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  #diagnostics:empty::after {
+    content: '型エラーはありません';
+  }
+
+  #results:empty::after {
+    content: 'まだ判定していません';
+  }
+
+  /* Lesson list becomes a bottom-sheet modal */
+  #lesson-list[hidden] {
+    display: none;
+  }
+
+  #lesson-list:not([hidden]) {
+    position: fixed;
+    inset: 8dvh 0 0 0;
+    z-index: 60;
+    overflow: auto;
+    padding: 56px 12px calc(12px + env(safe-area-inset-bottom));
+    border: 0;
     border-top: 1px solid var(--border);
-    grid-template-rows: repeat(4, minmax(120px, 1fr));
-    min-height: 360px;
+    border-radius: 12px 12px 0 0;
+    background: var(--panel);
+  }
+
+  #sheet-backdrop:not([hidden]) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 55;
+  }
+
+  #list-close:not([hidden]) {
+    display: block;
+    position: fixed;
+    top: calc(8dvh + 8px);
+    right: 12px;
+    z-index: 61;
+  }
+
+  #solution-modal {
+    padding: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 768px) and (pointer: coarse) {
+  .run-shortcut {
+    display: none;
   }
 }
 

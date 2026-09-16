@@ -20,10 +20,17 @@
 
     <div id="lesson-view" class="view">
       <header>
+        <button id="list-open" type="button">一覧</button>
         <a href="#/" class="home-link">Code Atlas</a>
         <span id="lesson-title"></span>
-        <span id="status"></span>
+        <span id="status" aria-live="polite"></span>
       </header>
+
+      <nav id="mobile-tabs" role="tablist" aria-label="表示の切り替え">
+        <button id="tab-explanation" role="tab" type="button" aria-controls="explanation" aria-selected="false" tabindex="-1">解説</button>
+        <button id="tab-code" role="tab" type="button" aria-controls="code-pane" aria-selected="true">コード</button>
+        <button id="tab-result" role="tab" type="button" aria-controls="side" aria-selected="false" tabindex="-1">結果<span id="result-badge" hidden></span></button>
+      </nav>
 
       <main>
         <nav id="lesson-list" aria-label="レッスン一覧"></nav>
@@ -32,19 +39,28 @@
         <section id="work">
           <article id="explanation"></article>
           <div class="gutter gutter-vertical" role="separator" aria-orientation="horizontal" tabindex="0" data-pane="exp"></div>
-          <div id="editor"></div>
-          <div id="toolbar">
-            <button id="run" type="button">実行 (Ctrl+Enter)</button>
-            <button id="check" type="button">判定</button>
-            <button id="hint" type="button">ヒント</button>
-            <button id="solution" type="button">解答例</button>
-            <button id="reset" type="button">リセット</button>
+          <div id="code-pane">
+            <div id="editor"></div>
+            <div id="toolbar">
+              <button id="run" type="button">実行 <span class="run-shortcut">(Ctrl+Enter)</span></button>
+              <button id="check" type="button">判定</button>
+              <button id="more" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="more-menu">その他</button>
+              <div id="more-menu" role="menu" aria-label="その他の操作" hidden>
+                <button id="hint" type="button">ヒント</button>
+                <button id="solution" type="button">解答例</button>
+                <button id="reset" type="button">リセット</button>
+              </div>
+            </div>
           </div>
         </section>
 
         <div class="gutter gutter-horizontal" role="separator" aria-orientation="vertical" tabindex="0" data-pane="side"></div>
 
         <aside id="side">
+          <section class="panel" id="summary-panel">
+            <h2>結果のまとめ</h2>
+            <p id="summary">まだ実行していません。</p>
+          </section>
           <section class="panel">
             <h2>期待する出力</h2>
             <pre id="expected"></pre>
@@ -66,6 +82,8 @@
           </section>
         </aside>
       </main>
+      <div id="sheet-backdrop" hidden></div>
+      <button id="list-close" type="button" hidden>閉じる</button>
     </div>
 
     <script type="module" src="/src/main.ts"></script>

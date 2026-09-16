@@ -41,6 +41,7 @@ export interface EditorApi {
   setValue: (value: string) => void
   onMarkers: (callback: (markers: monaco.editor.IMarker[]) => void) => void
   layout: () => void
+  setWordWrap: (on: boolean) => void
 }
 
 export function createEditor(
@@ -61,6 +62,8 @@ export function createEditor(
     tabSize: 2,
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
+    // 折り返しはモバイル幅のみ。デスクトップは従来どおり横スクロール。
+    wordWrap: window.matchMedia('(max-width: 768px)').matches ? 'on' : 'off',
     padding: { top: 8, bottom: 8 },
   })
 
@@ -84,5 +87,6 @@ export function createEditor(
     setValue: (value: string) => model.setValue(value),
     onMarkers,
     layout: () => editor.layout(),
+    setWordWrap: (on: boolean) => editor.updateOptions({ wordWrap: on ? 'on' : 'off' }),
   }
 }
