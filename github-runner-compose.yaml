@@ -1,0 +1,47 @@
+services:
+  github-runner:
+    image: myoung34/github-runner:latest
+    container_name: github-runner-playground
+    environment:
+      # GitHubリポジトリURL
+      - REPO_URL=https://github.com/Aosy0/playground
+
+      # Runner名
+      - RUNNER_NAME=playground-docker-runner
+
+      # GitHubのPersonal Access Token（.env の GITHUB_TOKEN を参照）
+      # classic PAT: repo スコープ / fine-grained PAT: Administration(Read and write) + Metadata(Read)
+      - ACCESS_TOKEN=${GITHUB_TOKEN}
+
+      # ワークディレクトリ
+      - RUNNER_WORKDIR=/tmp/github-runner
+
+      # ラベル（ワークフロー側は runs-on: [self-hosted, playground] で指定）
+      - LABELS=docker,self-hosted,linux,playground,dind
+
+      # Runner グループ（デフォルト: Default）
+      - RUNNER_GROUP=Default
+
+      # Docker-in-Dockerを有効化
+      - DOCKER_ENABLED=true
+
+      # エフェメラルモード（ジョブ実行後に自動的に登録解除）
+      - EPHEMERAL=true
+
+    privileged: true  # Docker-in-Dockerに必要
+
+    volumes:
+      # Dockerコマンドを実行できるようにする
+      - /var/run/docker.sock:/var/run/docker.sock
+
+      # プロジェクトディレクトリをマウント
+      - /home/aosy/Docker/playground:/home/aosy/Docker/playground
+
+    restart: unless-stopped
+
+    networks:
+      - default
+
+networks:
+  default:
+    name: playground-network

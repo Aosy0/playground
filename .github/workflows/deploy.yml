@@ -1,0 +1,95 @@
+name: Test and Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'screenshots/**'
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'screenshots/**'
+  workflow_dispatch:
+
+# 同じブランチの古い実行をキャンセルし、連続pushによる重複実行を防ぐ
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # テストは GitHub の使い捨てVM上で実行（ホストに負荷をかけない）
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      # Playwright のブラウザをキャッシュ（2回目以降はダウンロードなし）
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: 依存関係のインストール
+        run: npm ci --no-audit --no-fund
+
+      - name: 型チェック
+        run: npx tsc --noEmit
+
+      - name: レッスンデータの検証
+        run: npm run check
+
+      - name: Playwright ブラウザの準備
+        run: npx playwright install chromium
+
+      # 本番バンドル(vite build)はデプロイ時の Docker ビルドで1回だけ実行する
+      # 1つの開発サーバーを両方のE2Eで使い回す
+      - name: E2E テスト
+        run: |
+          npm run dev &
+          for _ in $(seq 1 60); do
+            curl -sf http://localhost:5174/ > /dev/null && break
+            sleep 1
+          done
+          npm run e2e
+          npm run e2e:mobile
+
+  # デプロイはこのホストのセルフホストランナーで実行
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, playground]
+    steps:
+      - name: 最新コードを取得
+        run: |
+          cd /home/aosy/Docker/playground
+          git config --global --add safe.directory /home/aosy/Docker/playground
+          git fetch "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Aosy0/playground.git" main
+          git reset --hard FETCH_HEAD
+
+      - name: イメージをビルド
+        run: |
+          cd /home/aosy/Docker/playground
+          docker compose build
+
+      - name: コンテナを再起動
+        run: |
+          cd /home/aosy/Docker/playground
+          docker compose down
+          docker compose up -d
+
+      - name: 状態確認
+        run: |
+          cd /home/aosy/Docker/playground
+          docker compose ps

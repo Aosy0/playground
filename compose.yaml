@@ -1,0 +1,11 @@
+services:
+  playground:
+    build: .
+    container_name: playground
+    restart: unless-stopped
+    networks:
+      - shared-network
+
+networks:
+  shared-network:
+    external: true
